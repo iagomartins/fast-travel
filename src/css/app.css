@@ -1,0 +1,26 @@
+/* app global css */
+
+.centered-column {
+    display: flex;
+    flex-direction: column;
+    grid-gap: 20px;
+    padding: 30px;
+    align-items: center;
+    justify-content: center;
+}
+
+.right-column {
+    display: flex;
+    flex-direction: column;
+    grid-gap: 20px;
+    padding: 30px;
+    align-items: flex-end;
+    justify-content: center;
+}
+
+.centered-row {
+    display: flex;
+    grid-gap: 20px;
+    align-items: center;
+    justify-content: flex-start;
+}
