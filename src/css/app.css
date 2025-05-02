@@ -44,4 +44,7 @@
     background-color: var(--q-secondary);
     padding: 5px 10px;
     border-bottom: 1px solid var(--q-primary);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }

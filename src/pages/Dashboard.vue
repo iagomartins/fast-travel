@@ -20,7 +20,7 @@
           narrow-indicator
         >
           <q-tab icon="fa-solid fa-plane-departure" name="travels" label="My Travels" />
-          <q-tab icon="fa-solid fa-table" name="dashboard" label="Dashboard" />
+          <q-tab v-show="isAdm" icon="fa-solid fa-table" name="dashboard" label="Dashboard" />
         </q-tabs>
 
         <q-separator />
@@ -74,7 +74,7 @@
         <div class="centered-column full-width bg-white">
           <h6 class="q-mb-md">Notifications:</h6>
           <div class="notify-block">
-            <span v-for="(item, index) in notifications" :key="index" class="notify-item">{{ item.message }}</span>
+            <span v-for="(item, index) in notifications" :key="index" class="notify-item">{{ item.message }} <q-icon @click="clearNotification(item)" name="fa-solid fa-trash"></q-icon></span>
           </div>
         </div>
       </q-dialog>
@@ -128,6 +128,9 @@
   const notifications = ref([])
   const hasNotifications = ref(false)
   const showNotify = ref(false)
+  const isAdm = ref(false)
+
+  isAdm.value = SessionStorage.getItem('user_type') === 'adm' ? true : false
 
   const config = {
     headers: {
@@ -139,7 +142,7 @@
     tableData.value = data
   })
 
-  axios.post(`${process.env.API_URL}/api/v1/ordersByUser`, { user_id: 1 }, config).then(({ data }) => {
+  axios.post(`${process.env.API_URL}/api/v1/ordersByUser`, { user_id: SessionStorage.getItem('user_id') }, config).then(({ data }) => {
     userTableData.value = data
   })
 
@@ -182,7 +185,7 @@
         })
 
         axios.post(`${process.env.API_URL}/api/v1/notifications`, {
-          user_id: body.id,
+          user_id: body.user_id,
           message: 'Your order was updated!'
         }, config)
       }
@@ -200,7 +203,8 @@
       destiny: destiny.value,
       start_date: startDateC.value,
       return_date: returnDate.value,
-      status: "Pending"
+      status: "Pending",
+      user_id: SessionStorage.getItem('user_id')
     }
 
     const config = {
@@ -218,6 +222,10 @@
     }
 
     axios.post(`${process.env.API_URL}/api/v1/orders`, body, config).then(({ data }) => {
+      Notify.create({
+        message: 'Order created!',
+        color: 'secondary'
+      })
       Loading.hide()
     }).catch(() => {
       Loading.hide()
@@ -263,16 +271,34 @@
   function clearFilters() {
     const config = {
       headers: {
-        Authorization: `Bearer ${SessionStorage.get('session_key')}`
+        Authorization: `Bearer ${SessionStorage.getItem('session_key')}`
       }
     }
 
     axios.get(`${process.env.API_URL}/api/v1/orders`, config).then(({ data }) => {
       tableData.value = data
     })
+
+    axios.post(`${process.env.API_URL}/api/v1/ordersByUser`, { user_id: SessionStorage.getItem('user_id') }, config).then(({ data }) => {
+      userTableData.value = data
+    })
   }
 
   function togleShowNotify() {
     showNotify.value = !showNotify.value
+  }
+
+  function clearNotification(item) {
+    axios.delete(`${process.env.API_URL}/api/v1/notifications/${item.id}`, config)
+
+    const notifyArray = notifications.value.filter((el) => {
+      return el.id !== item.id;
+    })
+
+    notifications.value = notifyArray;
+
+    if (!notifications.value.length) {
+      hasNotifications.value = false;
+    }
   }
 </script>
