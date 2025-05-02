@@ -1,24 +1,57 @@
 <template>
   <q-page class="flex flex-center">
       <div class="centered-column">
-        <div class="centered-row full-width">
-          <span>Filters:</span>
-          <q-input label="Destination" dense outlined v-model="destination"></q-input>
-          <q-input label="Start date" dense outlined type="date" v-model="startDate"></q-input>
-          <q-input label="End date" dense outlined type="date" v-model="endDate"></q-input>
-          <q-btn color="primary" class="q-px-md" label="Apply" dense @click="filterTableData()"></q-btn>
-          <q-btn color="red" class="q-px-md" label="Clear" dense @click="clearFilters()"></q-btn>
+        <div class="full-width notification-bar">
+          <q-btn
+            flat
+            icon="fa-solid fa-bell"
+            rounded
+            @click="togleShowNotify"
+          >
+          <q-badge v-show="hasNotifications" color="secondary" floating></q-badge>
+          </q-btn>
         </div>
-        <q-table title="Travels list:" :columns="columns" :rows="tableData" flat bordered>
-          <template v-slot:body-cell-manage="props">
-            <q-td :props="props">
-              <q-btn unelevated color="primary" @click="handleAction(props.row)" icon="menu"></q-btn>
-            </q-td>
-          </template>
-        </q-table>
-        <div class="centered-row full-width">
-          <q-btn color="primary" class="q-px-md" label="Create travel" dense @click="addItem = true"></q-btn>
-        </div>
+        <q-tabs
+          v-model="tab"
+          dense
+          class="text-grey"
+          active-color="primary"
+          indicator-color="primary"
+          narrow-indicator
+        >
+          <q-tab icon="fa-solid fa-plane-departure" name="travels" label="My Travels" />
+          <q-tab icon="fa-solid fa-table" name="dashboard" label="Dashboard" />
+        </q-tabs>
+
+        <q-separator />
+
+        <q-tab-panels v-model="tab" animated>
+          <q-tab-panel name="travels">
+            <q-table class="full-width q-mb-md" title="My travels:" :columns="columnsUser" :rows="userTableData" flat bordered>
+            </q-table>
+            <div class="centered-row full-width">
+              <q-btn color="primary" class="q-px-md" label="Create travel" dense @click="addItem = true"></q-btn>
+            </div>
+          </q-tab-panel>
+
+          <q-tab-panel name="dashboard">
+            <div class="centered-row full-width q-mb-md">
+              <span>Filters:</span>
+              <q-input label="Destination" dense outlined v-model="destination"></q-input>
+              <q-input label="Start date" dense outlined type="date" v-model="startDate"></q-input>
+              <q-input label="End date" dense outlined type="date" v-model="endDate"></q-input>
+              <q-btn color="primary" class="q-px-md" label="Apply" dense @click="filterTableData()"></q-btn>
+              <q-btn color="red" class="q-px-md" label="Clear" dense @click="clearFilters()"></q-btn>
+            </div>
+            <q-table class="full-width q-mb-md" title="Travels list:" :columns="columns" :rows="tableData" flat bordered>
+              <template v-slot:body-cell-manage="props">
+                <q-td :props="props">
+                  <q-btn unelevated color="primary" @click="handleAction(props.row)" icon="fa-solid fa-pen-to-square"></q-btn>
+                </q-td>
+              </template>
+            </q-table>
+          </q-tab-panel>
+        </q-tab-panels>
       </div>
       <q-dialog v-model="editItem">
         <div class="centered-column full-width bg-white">
@@ -37,12 +70,20 @@
           <q-btn class="q-px-md" color="primary" dense label="Save" @click="createItem()"></q-btn>
         </div>
       </q-dialog>
+      <q-dialog v-model="showNotify">
+        <div class="centered-column full-width bg-white">
+          <h6 class="q-mb-md">Notifications:</h6>
+          <div class="notify-block">
+            <span v-for="(item, index) in notifications" :key="index" class="notify-item">{{ item.message }}</span>
+          </div>
+        </div>
+      </q-dialog>
   </q-page>
 </template>
 
 <script setup>
   import axios from 'axios'
-  import { Loading, Notify } from 'quasar'
+  import { Loading, Notify, SessionStorage } from 'quasar'
   import { ref } from 'vue'
 
   const columns = [
@@ -57,7 +98,19 @@
     { name: 'manage', label: 'Manage' }
   ]
 
-  const tableData = ref('')
+  const columnsUser = [
+    { name: 'id', label: 'Id', field: 'id' },
+    { name: 'customer_name', label: 'Customer', field: 'customer_name' },
+    { name: 'destiny', label: 'Destiny', field: 'destiny' },
+    { name: 'start_date', label: 'Travel Date', field: 'start_date', sortable: true, sort: (a, b) => parseInt(a, 10) - parseInt(b, 10) },
+    { name: 'return_date', label: 'Return Date', field: 'return_date', sortable: true, sort: (a, b) => parseInt(a, 10) - parseInt(b, 10) },
+    { name: 'status', label: 'Status', field: 'status' },
+    { name: 'created_at', label: 'Creted at', field: 'created_at' },
+    { name: 'updated_at', label: 'Updated at', field: 'updated_at' }
+  ]
+
+  const tableData = ref([])
+  const userTableData = ref([])
   const selectedRow = ref('')
   const statusSelect = ref('Selecione...')
   const editItem = ref(false)
@@ -70,9 +123,33 @@
   const destiny = ref('')
   const startDateC = ref('')
   const returnDate = ref('')
+  const leftDrawerOpen = ref(false)
+  const tab = ref('travels')
+  const notifications = ref([])
+  const hasNotifications = ref(false)
+  const showNotify = ref(false)
 
-  axios.get(`${process.env.API_URL}/api/orders`).then(({ data }) => {
+  const config = {
+    headers: {
+      Authorization: `Bearer ${SessionStorage.getItem('session_key')}`
+    }
+  }
+
+  axios.get(`${process.env.API_URL}/api/v1/orders`, config).then(({ data }) => {
     tableData.value = data
+  })
+
+  axios.post(`${process.env.API_URL}/api/v1/ordersByUser`, { user_id: 1 }, config).then(({ data }) => {
+    userTableData.value = data
+  })
+
+  axios.post(`${process.env.API_URL}/api/v1/showUserNotifications`, {
+    user_id: SessionStorage.getItem('user_id')
+  }, config).then(({ data }) => {
+    notifications.value = data
+    if (data.length) {
+      hasNotifications.value = true
+    }
   })
 
   function handleAction(row) {
@@ -82,14 +159,32 @@
 
   function updateItem(row) {
     Loading.show()
+
     const body = row
     body.status = statusSelect
-    axios.put(`${process.env.API_URL}/api/orders/${row.id}`, body).then(({ data }) => {
+
+    const config = {
+      headers: {
+        Authorization: `Bearer ${SessionStorage.getItem('session_key')}`
+      }
+    }
+
+    axios.put(`${process.env.API_URL}/api/v1/orders/${row.id}`, body, config).then(({ data }) => {
       if (data.status === 'error') {
         Notify.create({
           message: data.message,
-          color: 'red'
+          color: 'negative'
         })
+      } else {
+        Notify.create({
+          message: 'Order updated',
+          color: 'secondary'
+        })
+
+        axios.post(`${process.env.API_URL}/api/v1/notifications`, {
+          user_id: body.id,
+          message: 'Your order was updated!'
+        }, config)
       }
       Loading.hide()
     }).catch(() => {
@@ -108,6 +203,12 @@
       status: "Pending"
     }
 
+    const config = {
+      headers: {
+        Authorization: `Bearer ${SessionStorage.getItem('session_key')}`
+      }
+    }
+
     if (customerName.value === '' || destiny.value === '' || startDateC.value === '' || returnDate.value === '') {
       Notify.create({
         message: 'You must fulfill the form!',
@@ -116,7 +217,7 @@
       return
     }
 
-    axios.post(`${process.env.API_URL}/api/orders`, body).then(({ data }) => {
+    axios.post(`${process.env.API_URL}/api/v1/orders`, body, config).then(({ data }) => {
       Loading.hide()
     }).catch(() => {
       Loading.hide()
@@ -139,13 +240,19 @@
 
     Loading.show()
 
+    const config = {
+      headers: {
+        Authorization: `Bearer ${SessionStorage.get('session_key')}`
+      }
+    }
+
     const body = {
       destination: destination.value,
       start_date: startDate.value,
       end_date: endDate.value
     }
 
-    axios.post(`${process.env.API_URL}/api/filterOrders`, body).then(({ data }) => {
+    axios.post(`${process.env.API_URL}/api/v1/filterOrders`, body, config).then(({ data }) => {
       tableData.value = data
       Loading.hide()
     }).catch(() => {
@@ -154,8 +261,18 @@
   }
 
   function clearFilters() {
-    axios.get(`${process.env.API_URL}/api/orders`).then(({ data }) => {
+    const config = {
+      headers: {
+        Authorization: `Bearer ${SessionStorage.get('session_key')}`
+      }
+    }
+
+    axios.get(`${process.env.API_URL}/api/v1/orders`, config).then(({ data }) => {
       tableData.value = data
     })
+  }
+
+  function togleShowNotify() {
+    showNotify.value = !showNotify.value
   }
 </script>
