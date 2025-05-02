@@ -14,7 +14,7 @@
             flat
             icon="fa-solid fa-arrow-right-from-bracket"
             rounded
-            @click="() => { $router.push('/'); $q.sessionStorage.clear() }"
+            @click="() => { $router.push('/') }"
           >
           <q-tooltip>Logout</q-tooltip>
           </q-btn>

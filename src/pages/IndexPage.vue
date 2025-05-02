@@ -40,6 +40,8 @@
   const newEmail = ref('')
   const newPassword = ref('')
 
+  SessionStorage.clear()
+
   //Get API token
   const api_url = `${process.env.API_URL}/api/authenticate`
   const body = {
