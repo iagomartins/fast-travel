@@ -10,6 +10,14 @@
           >
           <q-badge v-show="hasNotifications" color="secondary" floating></q-badge>
           </q-btn>
+          <q-btn
+            flat
+            icon="fa-solid fa-arrow-right-from-bracket"
+            rounded
+            @click="() => { $router.push('/'); $q.sessionStorage.clear() }"
+          >
+          <q-tooltip>Logout</q-tooltip>
+          </q-btn>
         </div>
         <q-tabs
           v-model="tab"
@@ -130,7 +138,9 @@
   const showNotify = ref(false)
   const isAdm = ref(false)
 
-  isAdm.value = SessionStorage.getItem('user_type') === 'adm' ? true : false
+  setTimeout(() => {
+    isAdm.value = SessionStorage.getItem('user_type') === 'adm' ? true : false
+  }, 500)
 
   const config = {
     headers: {
@@ -142,18 +152,19 @@
     tableData.value = data
   })
 
-  axios.post(`${process.env.API_URL}/api/v1/ordersByUser`, { user_id: SessionStorage.getItem('user_id') }, config).then(({ data }) => {
-    userTableData.value = data
-  })
-
-  axios.post(`${process.env.API_URL}/api/v1/showUserNotifications`, {
-    user_id: SessionStorage.getItem('user_id')
-  }, config).then(({ data }) => {
-    notifications.value = data
-    if (data.length) {
-      hasNotifications.value = true
-    }
-  })
+  setTimeout(() => {
+    axios.post(`${process.env.API_URL}/api/v1/ordersByUser`, { user_id: SessionStorage.getItem('user_id') }, config).then(({ data }) => {
+      userTableData.value = data
+    })
+    axios.post(`${process.env.API_URL}/api/v1/showUserNotifications`, {
+      user_id: SessionStorage.getItem('user_id')
+    }, config).then(({ data }) => {
+      notifications.value = data
+      if (data.length) {
+        hasNotifications.value = true
+      }
+    })
+  }, 500)
 
   function handleAction(row) {
     selectedRow.value = row
