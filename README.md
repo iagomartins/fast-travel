@@ -10,6 +10,10 @@ E-mail: admin@admin.com
 Senha: password
 ```
 
+- Regra de negócio para cancelamento de pedidos:
+
+Pedidos só podem ser cancelados com 30 dias de antecedência da viagem. 
+
 - Você pode criar um usuário comum na tela de login e realizar pedidos de viagem.
 
 # Instalações necessárias
