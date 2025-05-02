@@ -2,23 +2,41 @@
 
 Make travels fast!
 
-## Install the dependencies
+# Instruções
+
+- Você pode fazer login com o usuário admin para gerenciar pedidos de viagem:
+```bash
+E-mail: admin@admin.com
+Senha: password
+```
+
+- Você pode criar um usuário comum na tela de login e realizar pedidos de viagem.
+
+# Instalações necessárias
+
+- Node.js
+- npm ou yarn
+- @quasar/cli
+
+Make travels fast!
+
+## Instalar dependências
 ```bash
 yarn
 # or
 npm install
 ```
 
-### Start the app in development mode (hot-code reloading, error reporting, etc.)
+### Iniciar app em modo de desenvolvimento
 ```bash
 quasar dev
 ```
 
 
-### Build the app for production
+### Compilar o app para produção
 ```bash
 quasar build
 ```
 
-### Customize the configuration
-See [Configuring quasar.config.js](https://v2.quasar.dev/quasar-cli-vite/quasar-config-js).
+### Personalizar configurações
+Veja [Configuring quasar.config.js](https://v2.quasar.dev/quasar-cli-vite/quasar-config-js).
