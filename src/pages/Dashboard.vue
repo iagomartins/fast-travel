@@ -131,7 +131,6 @@
   const destiny = ref('')
   const startDateC = ref('')
   const returnDate = ref('')
-  const leftDrawerOpen = ref(false)
   const tab = ref('travels')
   const notifications = ref([])
   const hasNotifications = ref(false)
@@ -140,6 +139,7 @@
 
   setTimeout(() => {
     isAdm.value = SessionStorage.getItem('user_type') === 'adm' ? true : false
+    Loading.hide();
   }, 500)
 
   const config = {

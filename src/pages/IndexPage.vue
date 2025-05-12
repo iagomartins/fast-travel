@@ -12,7 +12,7 @@
     <div class="centered-column">
       <q-input style="width: 200px;" dense ref="Username" outlined label="E-mail" v-model="username"></q-input>
       <q-input style="width: 200px;" type="password" dense ref="Password" outlined label="Password" v-model="password"></q-input>
-      <q-btn style="width: 200px;" color="primary" dense @click="() => { login() ? $router.push('/dashboard') : loginError() }">Login</q-btn>
+      <q-btn style="width: 200px;" color="primary" dense @click="login">Login</q-btn>
       <q-btn style="width: 200px;" color="secondary" dense @click="toggleCreateUser">Sign Up</q-btn>
     </div>
     <q-dialog v-model="createUser">
@@ -31,6 +31,7 @@
 <script setup>
   import { SessionStorage, Notify, Loading } from 'quasar'
   import { ref } from 'vue'
+  import { useRouter } from 'vue-router'
   import axios from 'axios'
 
   const username = ref('')
@@ -39,6 +40,7 @@
   const newUsername = ref('')
   const newEmail = ref('')
   const newPassword = ref('')
+  const router = useRouter()
 
   SessionStorage.clear()
 
@@ -81,18 +83,13 @@
       SessionStorage.set('user_id', data.user.id);
       user.type = data.user.id === 1 ? 'adm' : 'user'
       SessionStorage.set('user_type', user.type)
-    }).catch((err) => {
-      console.log(err, login_body)
-      loginError()
+      router.push('/dashboard')
+    }).catch(() => {
       username.value = ''
       password.value = ''
       Loading.hide()
+      loginError()
     })
-
-    if (response.ok) {
-      Loading.hide()
-      return true;
-    }
   }
 
   function loginError() {
