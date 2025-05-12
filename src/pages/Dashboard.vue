@@ -261,7 +261,7 @@
 
     const config = {
       headers: {
-        Authorization: `Bearer ${SessionStorage.get('session_key')}`
+        Authorization: `Bearer ${SessionStorage.getItem('session_key')}`
       }
     }
 

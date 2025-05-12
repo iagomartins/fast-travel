@@ -29,7 +29,7 @@
 </template>
 
 <script setup>
-  import { LocalStorage, SessionStorage, Notify, Loading } from 'quasar'
+  import { SessionStorage, Notify, Loading } from 'quasar'
   import { ref } from 'vue'
   import axios from 'axios'
 
