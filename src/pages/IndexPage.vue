@@ -32,6 +32,7 @@
   import { SessionStorage, Notify, Loading } from 'quasar'
   import { ref } from 'vue'
   import { useRouter } from 'vue-router'
+  import { useUser } from 'src/stores/user'
   import axios from 'axios'
 
   const username = ref('')
@@ -41,6 +42,7 @@
   const newEmail = ref('')
   const newPassword = ref('')
   const router = useRouter()
+  const store = useUser()
 
   SessionStorage.clear()
 
@@ -83,6 +85,7 @@
       SessionStorage.set('user_id', data.user.id);
       user.type = data.user.id === 1 ? 'adm' : 'user'
       SessionStorage.set('user_type', user.type)
+      store.user = data.user
       router.push('/dashboard')
     }).catch(() => {
       username.value = ''

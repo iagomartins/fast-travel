@@ -93,6 +93,9 @@
   import axios from 'axios'
   import { Loading, Notify, SessionStorage } from 'quasar'
   import { ref } from 'vue'
+  import { useUser } from 'src/stores/user'
+
+  const store = useUser()
 
   const columns = [
     { name: 'id', label: 'Id', field: 'id' },
