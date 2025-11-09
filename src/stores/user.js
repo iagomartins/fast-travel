@@ -8,7 +8,12 @@ export const useUser = defineStore('user', {
     getUser: (state) => state.user
   },
   actions: {
-    setUser: (state, user) => { state.user = user }
+    setUser(user) {
+      this.user = user
+    },
+    clearUser() {
+      this.user = null
+    }
   }
 })
 

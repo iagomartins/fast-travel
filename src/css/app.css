@@ -1,50 +1,103 @@
 /* app global css */
 
 .centered-column {
-    display: flex;
-    flex-direction: column;
-    grid-gap: 20px;
-    padding: 30px;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 30px;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
 }
 
 .right-column {
-    display: flex;
-    flex-direction: column;
-    grid-gap: 20px;
-    padding: 30px;
-    align-items: flex-end;
-    justify-content: center;
-    width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 30px;
+  align-items: flex-end;
+  justify-content: center;
+  width: 100%;
 }
 
 .centered-row {
-    display: flex;
-    grid-gap: 20px;
-    align-items: center;
-    justify-content: flex-start;
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  justify-content: flex-start;
 }
 
 .notification-bar {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px;
 }
 
 .notify-block {
-    display: flex;
-    flex-direction: column;
-    width: 100%;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  gap: 8px;
 }
 
 .notify-item {
-    width: 100%;
-    background-color: var(--q-secondary);
-    padding: 5px 10px;
-    border-bottom: 1px solid var(--q-primary);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+  width: 100%;
+  background-color: rgba(var(--q-secondary-rgb), 0.1);
+  padding: 12px 16px;
+  border-radius: 8px;
+  border: 1px solid rgba(var(--q-primary-rgb), 0.2);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.3s ease;
+}
+
+.notify-item:hover {
+  background-color: rgba(var(--q-secondary-rgb), 0.2);
+}
+
+/* Dark mode adjustments */
+.body--dark .notify-item {
+  background-color: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.body--dark .notify-item:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Dialog improvements */
+.q-dialog .q-card {
+  border-radius: 12px;
+}
+
+/* Form improvements */
+.q-field--outlined .q-field__control {
+  border-radius: 8px;
+}
+
+/* Table improvements */
+.q-table__top {
+  padding: 16px;
+}
+
+.q-table th {
+  font-weight: 600;
+}
+
+/* Page container improvements */
+.q-page {
+  padding: 24px;
+}
+
+@media (max-width: 600px) {
+  .q-page {
+    padding: 16px;
+  }
+  
+  .centered-column {
+    padding: 16px;
+  }
 }

@@ -1,318 +1,420 @@
 <template>
-  <q-page class="flex flex-center">
-      <div class="centered-column">
-        <div class="full-width notification-bar">
-          <q-btn
-            flat
-            icon="fa-solid fa-bell"
-            rounded
-            @click="togleShowNotify"
-          >
-          <q-badge v-show="hasNotifications" color="secondary" floating></q-badge>
-          </q-btn>
-          <q-btn
-            flat
-            icon="fa-solid fa-arrow-right-from-bracket"
-            rounded
-            @click="() => { $router.push('/') }"
-          >
-          <q-tooltip>Logout</q-tooltip>
-          </q-btn>
-        </div>
-        <q-tabs
-          v-model="tab"
-          dense
-          class="text-grey"
-          active-color="primary"
-          indicator-color="primary"
-          narrow-indicator
-        >
-          <q-tab icon="fa-solid fa-plane-departure" name="travels" label="My Travels" />
-          <q-tab v-show="isAdm" icon="fa-solid fa-table" name="dashboard" label="Dashboard" />
-        </q-tabs>
-
-        <q-separator />
-
-        <q-tab-panels v-model="tab" animated>
-          <q-tab-panel name="travels">
-            <q-table class="full-width q-mb-md" title="My travels:" :columns="columnsUser" :rows="userTableData" flat bordered>
-            </q-table>
-            <div class="centered-row full-width">
-              <q-btn color="primary" class="q-px-md" label="Create travel" dense @click="addItem = true"></q-btn>
-            </div>
-          </q-tab-panel>
-
-          <q-tab-panel name="dashboard">
-            <div class="centered-row full-width q-mb-md">
-              <span>Filters:</span>
-              <q-input label="Destination" dense outlined v-model="destination"></q-input>
-              <q-input label="Start date" dense outlined type="date" v-model="startDate"></q-input>
-              <q-input label="End date" dense outlined type="date" v-model="endDate"></q-input>
-              <q-btn color="primary" class="q-px-md" label="Apply" dense @click="filterTableData()"></q-btn>
-              <q-btn color="red" class="q-px-md" label="Clear" dense @click="clearFilters()"></q-btn>
-            </div>
-            <q-table class="full-width q-mb-md" title="Travels list:" :columns="columns" :rows="tableData" flat bordered>
-              <template v-slot:body-cell-manage="props">
-                <q-td :props="props">
-                  <q-btn unelevated color="primary" @click="handleAction(props.row)" icon="fa-solid fa-pen-to-square"></q-btn>
-                </q-td>
-              </template>
-            </q-table>
-          </q-tab-panel>
-        </q-tab-panels>
+  <q-page class="q-pa-md">
+    <div class="full-width">
+      <div class="full-width notification-bar">
+        <q-btn flat icon="notifications" round @click="showNotificationsDialog = true">
+          <q-badge v-if="notificationsStore.hasNotifications" color="secondary" floating />
+          <q-tooltip>Notifications</q-tooltip>
+        </q-btn>
       </div>
-      <q-dialog v-model="editItem">
-        <div class="centered-column full-width bg-white">
-          <h6 class="q-ma-none">Update order:</h6>
-          <q-select label="Approve or cancel" :options="statusOptions" v-model="statusSelect"></q-select>
-          <q-btn class="q-px-md" color="primary" dense label="Save" @click="updateItem(selectedRow)"></q-btn>
-        </div>
-      </q-dialog>
-      <q-dialog v-model="addItem">
-        <div class="centered-column full-width bg-white">
-          <h6 class="q-ma-none">Create order:</h6>
-          <q-input class="full-width" label="Name" dense outlined v-model="customerName"></q-input>
-          <q-input class="full-width" label="Destination" dense outlined v-model="destiny"></q-input>
-          <q-input class="full-width" label="Start date" type="date" dense outlined v-model="startDateC"></q-input>
-          <q-input class="full-width" label="Return date" type="date" dense outlined v-model="returnDate"></q-input>
-          <q-btn class="q-px-md" color="primary" dense label="Save" @click="createItem()"></q-btn>
-        </div>
-      </q-dialog>
-      <q-dialog v-model="showNotify">
-        <div class="centered-column full-width bg-white">
-          <h6 class="q-mb-md">Notifications:</h6>
-          <div class="notify-block">
-            <span v-for="(item, index) in notifications" :key="index" class="notify-item">{{ item.message }} <q-icon @click="clearNotification(item)" name="fa-solid fa-trash"></q-icon></span>
+
+      <q-tabs v-model="tab" dense class="text-grey" active-color="primary" indicator-color="primary" narrow-indicator>
+        <q-tab icon="flight_takeoff" name="travels" label="My Travels" />
+        <q-tab v-if="authStore.isAdmin" icon="table_chart" name="dashboard" label="Dashboard" />
+      </q-tabs>
+
+      <q-separator />
+
+      <q-tab-panels v-model="tab" animated>
+        <q-tab-panel name="travels" class="q-pa-md">
+          <q-table class="full-width q-mb-md" title="My Travels" :columns="columnsUser" :rows="ordersStore.userOrders"
+            :loading="ordersStore.isLoading" flat bordered :rows-per-page-options="[10, 20, 50]" row-key="id">
+            <template v-slot:no-data>
+              <div class="full-width row flex-center text-grey q-gutter-sm">
+                <q-icon name="inbox" size="2em" />
+                <span>No travels found. Create your first travel!</span>
+              </div>
+            </template>
+          </q-table>
+          <div class="row justify-center q-mt-md">
+            <q-btn color="primary" label="Create Travel" icon="add" @click="showCreateDialog = true" />
           </div>
-        </div>
-      </q-dialog>
+        </q-tab-panel>
+
+        <q-tab-panel name="dashboard" class="q-pa-md">
+          <OrderFilters :filters="ordersStore.filters" :loading="ordersStore.isLoading" @apply="handleFilter"
+            @clear="handleClearFilters" />
+          <q-table class="full-width q-mb-md" title="All Travels" :columns="columns" :rows="ordersStore.allOrders"
+            :loading="ordersStore.isLoading" flat bordered :rows-per-page-options="[10, 20, 50]" row-key="id">
+            <template v-slot:body-cell-manage="props">
+              <q-td :props="props">
+                <q-btn unelevated color="primary" icon="edit" size="sm" @click="handleEditOrder(props.row)">
+                  <q-tooltip>Edit Order</q-tooltip>
+                </q-btn>
+              </q-td>
+            </template>
+            <template v-slot:no-data>
+              <div class="full-width row flex-center text-grey q-gutter-sm">
+                <q-icon name="inbox" size="2em" />
+                <span>No orders found</span>
+              </div>
+            </template>
+          </q-table>
+        </q-tab-panel>
+      </q-tab-panels>
+    </div>
+
+    <TravelDialog v-model="showCreateDialog" :loading="ordersStore.isLoading" @submit="handleCreateOrder"
+      @close="showCreateDialog = false" />
+
+    <TravelDialog v-model="showEditDialog" :is-edit="true" :order="selectedOrder" :loading="ordersStore.isLoading"
+      @submit="handleUpdateOrder" @close="showEditDialog = false" />
+
+    <NotificationsDialog v-model="showNotificationsDialog" :notifications="notificationsStore.notifications"
+      @delete="handleDeleteNotification" @close="showNotificationsDialog = false" />
   </q-page>
 </template>
 
 <script setup>
-  import axios from 'axios'
-  import { Loading, Notify, SessionStorage } from 'quasar'
-  import { ref } from 'vue'
-  import { useUser } from 'src/stores/user'
+import { ref, computed, onMounted, watch } from 'vue'
+import { Notify, Loading } from 'quasar'
+import { useAuthStore } from 'src/stores/auth'
+import { useOrdersStore } from 'src/stores/orders'
+import { useNotificationsStore } from 'src/stores/notifications'
+import TravelDialog from 'src/components/TravelDialog.vue'
+import NotificationsDialog from 'src/components/NotificationsDialog.vue'
+import OrderFilters from 'src/components/OrderFilters.vue'
+import { SessionStorage } from 'quasar'
 
-  const store = useUser()
+const authStore = useAuthStore()
+const ordersStore = useOrdersStore()
+const notificationsStore = useNotificationsStore()
 
-  const columns = [
-    { name: 'id', label: 'Id', field: 'id' },
-    { name: 'customer_name', label: 'Customer', field: 'customer_name' },
-    { name: 'destiny', label: 'Destiny', field: 'destiny' },
-    { name: 'start_date', label: 'Travel Date', field: 'start_date', sortable: true, sort: (a, b) => parseInt(a, 10) - parseInt(b, 10) },
-    { name: 'return_date', label: 'Return Date', field: 'return_date', sortable: true, sort: (a, b) => parseInt(a, 10) - parseInt(b, 10) },
-    { name: 'status', label: 'Status', field: 'status' },
-    { name: 'created_at', label: 'Creted at', field: 'created_at' },
-    { name: 'updated_at', label: 'Updated at', field: 'updated_at' },
-    { name: 'manage', label: 'Manage' }
-  ]
+const tab = ref('travels')
+const showCreateDialog = ref(false)
+const showEditDialog = ref(false)
+const showNotificationsDialog = ref(false)
+const selectedOrder = ref(null)
 
-  const columnsUser = [
-    { name: 'id', label: 'Id', field: 'id' },
-    { name: 'customer_name', label: 'Customer', field: 'customer_name' },
-    { name: 'destiny', label: 'Destiny', field: 'destiny' },
-    { name: 'start_date', label: 'Travel Date', field: 'start_date', sortable: true, sort: (a, b) => parseInt(a, 10) - parseInt(b, 10) },
-    { name: 'return_date', label: 'Return Date', field: 'return_date', sortable: true, sort: (a, b) => parseInt(a, 10) - parseInt(b, 10) },
-    { name: 'status', label: 'Status', field: 'status' },
-    { name: 'created_at', label: 'Creted at', field: 'created_at' },
-    { name: 'updated_at', label: 'Updated at', field: 'updated_at' }
-  ]
-
-  const tableData = ref([])
-  const userTableData = ref([])
-  const selectedRow = ref('')
-  const statusSelect = ref('Selecione...')
-  const editItem = ref(false)
-  const addItem = ref(false)
-  const statusOptions = ['Approved', 'Cancelled']
-  const destination = ref('')
-  const startDate = ref('')
-  const endDate = ref('')
-  const customerName = ref('')
-  const destiny = ref('')
-  const startDateC = ref('')
-  const returnDate = ref('')
-  const tab = ref('travels')
-  const notifications = ref([])
-  const hasNotifications = ref(false)
-  const showNotify = ref(false)
-  const isAdm = ref(false)
-
-  setTimeout(() => {
-    isAdm.value = SessionStorage.getItem('user_type') === 'adm' ? true : false
-    Loading.hide();
-  }, 500)
-
-  const config = {
-    headers: {
-      Authorization: `Bearer ${SessionStorage.getItem('session_key')}`
-    }
+const columns = [
+  {
+    name: 'id',
+    label: 'ID',
+    field: 'id',
+    align: 'left',
+    sortable: true
+  },
+  {
+    name: 'customer_name',
+    label: 'Customer',
+    field: 'customer_name',
+    align: 'left',
+    sortable: true
+  },
+  {
+    name: 'destiny',
+    label: 'Destination',
+    field: 'destiny',
+    align: 'left',
+    sortable: true
+  },
+  {
+    name: 'start_date',
+    label: 'Travel Date',
+    field: 'start_date',
+    align: 'left',
+    sortable: true,
+    format: (val) => formatDate(val)
+  },
+  {
+    name: 'return_date',
+    label: 'Return Date',
+    field: 'return_date',
+    align: 'left',
+    sortable: true,
+    format: (val) => formatDate(val)
+  },
+  {
+    name: 'status',
+    label: 'Status',
+    field: 'status',
+    align: 'left',
+    sortable: true
+  },
+  {
+    name: 'created_at',
+    label: 'Created at',
+    field: 'created_at',
+    align: 'left',
+    format: (val) => formatDate(val)
+  },
+  {
+    name: 'updated_at',
+    label: 'Updated at',
+    field: 'updated_at',
+    align: 'left',
+    format: (val) => formatDate(val)
+  },
+  {
+    name: 'manage',
+    label: 'Actions',
+    field: 'manage',
+    align: 'center'
   }
+]
 
-  axios.get(`${process.env.API_URL}/api/v1/orders`, config).then(({ data }) => {
-    tableData.value = data
-  })
-
-  setTimeout(() => {
-    axios.post(`${process.env.API_URL}/api/v1/ordersByUser`, { user_id: SessionStorage.getItem('user_id') }, config).then(({ data }) => {
-      userTableData.value = data
-    })
-    axios.post(`${process.env.API_URL}/api/v1/showUserNotifications`, {
-      user_id: SessionStorage.getItem('user_id')
-    }, config).then(({ data }) => {
-      notifications.value = data
-      if (data.length) {
-        hasNotifications.value = true
-      }
-    })
-  }, 500)
-
-  function handleAction(row) {
-    selectedRow.value = row
-    editItem.value = !editItem.value
+const columnsUser = [
+  {
+    name: 'id',
+    label: 'ID',
+    field: 'id',
+    align: 'left',
+    sortable: true
+  },
+  {
+    name: 'customer_name',
+    label: 'Customer',
+    field: 'customer_name',
+    align: 'left',
+    sortable: true
+  },
+  {
+    name: 'destiny',
+    label: 'Destination',
+    field: 'destiny',
+    align: 'left',
+    sortable: true
+  },
+  {
+    name: 'start_date',
+    label: 'Travel Date',
+    field: 'start_date',
+    align: 'left',
+    sortable: true,
+    format: (val) => formatDate(val)
+  },
+  {
+    name: 'return_date',
+    label: 'Return Date',
+    field: 'return_date',
+    align: 'left',
+    sortable: true,
+    format: (val) => formatDate(val)
+  },
+  {
+    name: 'status',
+    label: 'Status',
+    field: 'status',
+    align: 'left',
+    sortable: true
+  },
+  {
+    name: 'created_at',
+    label: 'Created at',
+    field: 'created_at',
+    align: 'left',
+    format: (val) => formatDate(val)
+  },
+  {
+    name: 'updated_at',
+    label: 'Updated at',
+    field: 'updated_at',
+    align: 'left',
+    format: (val) => formatDate(val)
   }
+]
 
-  function updateItem(row) {
-    Loading.show()
-
-    const body = row
-    body.status = statusSelect
-
-    const config = {
-      headers: {
-        Authorization: `Bearer ${SessionStorage.getItem('session_key')}`
-      }
-    }
-
-    axios.put(`${process.env.API_URL}/api/v1/orders/${row.id}`, body, config).then(({ data }) => {
-      if (data.status === 'error') {
-        Notify.create({
-          message: data.message,
-          color: 'negative'
-        })
-      } else {
-        Notify.create({
-          message: 'Order updated',
-          color: 'secondary'
-        })
-
-        axios.post(`${process.env.API_URL}/api/v1/notifications`, {
-          user_id: body.user_id,
-          message: 'Your order was updated!'
-        }, config)
-      }
-      Loading.hide()
-    }).catch(() => {
-      Loading.hide()
-    })
-
-    editItem.value = false
+function formatDate(dateString) {
+  if (!dateString) return '-'
+  try {
+    const date = new Date(dateString)
+    return date.toLocaleDateString()
+  } catch {
+    return dateString
   }
+}
 
-  function createItem() {
-    const body = {
-      customer_name: customerName.value,
-      destiny: destiny.value,
-      start_date: startDateC.value,
-      return_date: returnDate.value,
-      status: "Pending",
-      user_id: SessionStorage.getItem('user_id')
+onMounted(async () => {
+  Loading.show()
+  try {
+    // Initialize auth if needed
+    authStore.initAuth()
+
+    // Load data
+    await Promise.all([
+      loadUserOrders(),
+      loadNotifications()
+    ])
+
+    // Load admin orders if admin
+    if (authStore.isAdmin) {
+      await ordersStore.fetchAllOrders()
+    }
+  } catch (error) {
+    console.error('Failed to load dashboard data:', error)
+    Notify.create({
+      message: 'Failed to load data',
+      color: 'negative',
+      position: 'top'
+    })
+  } finally {
+    Loading.hide()
+  }
+})
+
+async function loadUserOrders() {
+  try {
+    await ordersStore.fetchUserOrders()
+  } catch (error) {
+    console.error('Failed to load user orders:', error)
+  }
+}
+
+async function loadNotifications() {
+  try {
+    await notificationsStore.fetchNotifications()
+  } catch (error) {
+    console.error('Failed to load notifications:', error)
+  }
+}
+
+async function handleCreateOrder(orderData) {
+  try {
+    await ordersStore.createOrder(orderData)
+    Notify.create({
+      message: 'Travel created successfully!',
+      color: 'positive',
+      position: 'top'
+    })
+    showCreateDialog.value = false
+  } catch (error) {
+    Notify.create({
+      message: error.response?.data?.message || 'Failed to create travel',
+      color: 'negative',
+      position: 'top'
+    })
+  }
+}
+
+function handleEditOrder(order) {
+  selectedOrder.value = order
+  showEditDialog.value = true
+}
+
+async function handleUpdateOrder(orderData) {
+  if (!selectedOrder.value) return
+
+  try {
+    const updateData = {
+      ...selectedOrder.value,
+      status: orderData.status || selectedOrder.value.status,
+      destiny: orderData.destiny || selectedOrder.value.destiny,
+      start_date: orderData.startDate || selectedOrder.value.start_date,
+      return_date: orderData.returnDate || selectedOrder.value.return_date
     }
 
-    const config = {
-      headers: {
-        Authorization: `Bearer ${SessionStorage.getItem('session_key')}`
-      }
-    }
+    const result = await ordersStore.updateOrder(selectedOrder.value.id, updateData)
 
-    if (customerName.value === '' || destiny.value === '' || startDateC.value === '' || returnDate.value === '') {
+    if (result?.status === 'error') {
       Notify.create({
-        message: 'You must fulfill the form!',
-        color: 'red'
+        message: result.message || 'Failed to update order',
+        color: 'negative',
+        position: 'top'
       })
-      return
+    } else {
+      Notify.create({
+        message: 'Order updated successfully!',
+        color: 'positive',
+        position: 'top'
+      })
+
+      // Create notification for user
+      if (updateData.user_id) {
+        try {
+          await notificationsStore.createNotification(
+            updateData.user_id,
+            'Your order was updated!'
+          )
+        } catch (error) {
+          console.error('Failed to create notification:', error)
+        }
+      }
+
+      // Refresh notifications
+      await loadNotifications()
     }
 
-    axios.post(`${process.env.API_URL}/api/v1/orders`, body, config).then(({ data }) => {
-      Notify.create({
-        message: 'Order created!',
-        color: 'secondary'
-      })
-      Loading.hide()
-    }).catch(() => {
-      Loading.hide()
+    showEditDialog.value = false
+    selectedOrder.value = null
+  } catch (error) {
+    Notify.create({
+      message: error.response?.data?.message || 'Failed to update order',
+      color: 'negative',
+      position: 'top'
     })
+  }
+}
 
-    addItem.value = false
-
-    clearFilters()
+async function handleFilter(filters) {
+  // Validate that at least one filter is provided
+  if (!filters.destination && !filters.startDate && !filters.endDate) {
+    Notify.create({
+      message: 'Please provide at least one filter',
+      color: 'warning',
+      position: 'top'
+    })
+    return
   }
 
-  function filterTableData() {
-    if (destination.value === '' || startDate.value === '' || endDate.value === '') {
-      Notify.create({
-        message: 'You must select all filters!',
-        color: 'red'
-      })
+  try {
+    await ordersStore.filterOrders(filters)
+    Notify.create({
+      message: 'Filters applied',
+      color: 'positive',
+      position: 'top'
+    })
+  } catch (error) {
+    Notify.create({
+      message: error.response?.data?.message || 'Failed to apply filters',
+      color: 'negative',
+      position: 'top'
+    })
+  }
+}
 
-      return
-    }
+async function handleClearFilters() {
+  try {
+    ordersStore.clearFilters()
+    Notify.create({
+      message: 'Filters cleared',
+      color: 'info',
+      position: 'top'
+    })
+  } catch (error) {
+    console.error('Failed to clear filters:', error)
+  }
+}
 
-    Loading.show()
+async function handleDeleteNotification(notification) {
+  try {
+    await notificationsStore.deleteNotification(notification.id)
+    Notify.create({
+      message: 'Notification deleted',
+      color: 'positive',
+      position: 'top'
+    })
+  } catch (error) {
+    Notify.create({
+      message: 'Failed to delete notification',
+      color: 'negative',
+      position: 'top'
+    })
+  }
+}
 
-    const config = {
-      headers: {
-        Authorization: `Bearer ${SessionStorage.getItem('session_key')}`
+// Watch for tab changes to load appropriate data
+watch(tab, async (newTab) => {
+  if (newTab === 'dashboard' && authStore.isAdmin) {
+    if (ordersStore.allOrders.length === 0) {
+      Loading.show()
+      try {
+        await ordersStore.fetchAllOrders()
+      } catch (error) {
+        console.error('Failed to load orders:', error)
+      } finally {
+        Loading.hide()
       }
     }
-
-    const body = {
-      destination: destination.value,
-      start_date: startDate.value,
-      end_date: endDate.value
-    }
-
-    axios.post(`${process.env.API_URL}/api/v1/filterOrders`, body, config).then(({ data }) => {
-      tableData.value = data
-      Loading.hide()
-    }).catch(() => {
-      Loading.hide()
-    })
   }
-
-  function clearFilters() {
-    const config = {
-      headers: {
-        Authorization: `Bearer ${SessionStorage.getItem('session_key')}`
-      }
-    }
-
-    axios.get(`${process.env.API_URL}/api/v1/orders`, config).then(({ data }) => {
-      tableData.value = data
-    })
-
-    axios.post(`${process.env.API_URL}/api/v1/ordersByUser`, { user_id: SessionStorage.getItem('user_id') }, config).then(({ data }) => {
-      userTableData.value = data
-    })
-  }
-
-  function togleShowNotify() {
-    showNotify.value = !showNotify.value
-  }
-
-  function clearNotification(item) {
-    axios.delete(`${process.env.API_URL}/api/v1/notifications/${item.id}`, config)
-
-    const notifyArray = notifications.value.filter((el) => {
-      return el.id !== item.id;
-    })
-
-    notifications.value = notifyArray;
-
-    if (!notifications.value.length) {
-      hasNotifications.value = false;
-    }
-  }
+})
 </script>
